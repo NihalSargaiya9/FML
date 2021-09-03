@@ -51,7 +51,7 @@ def get_features(csv_path,is_train=False,scaler=None):
     X = X.drop("satellite",axis=1)
     X["aqua"]=temp.iloc[:,0]
     X["terra"]=temp.iloc[:,1]
-    print(X)
+
     return X.values
 
 def get_targets(csv_path):
@@ -80,8 +80,18 @@ def analytical_solution(feature_matrix, targets, C=0.0):
     feature_matrix: numpy array of shape m x n
     targets: numpy array of shape m x 1
     '''
-    #pooja
-    raise NotImplementedError 
+    #anay
+    u = np.mean(feature_matrix,axis=0)
+    std = np.std(feature_matrix,axis=0)
+    feature_matrix = (feature_matrix-u)/std
+    one = np.ones((feature_matrix.shape[0],1))
+    feature_matrix = np.hstack((one,feature_matrix))
+    # print(feature_matrix)
+    A = np.linalg.inv(np.dot(feature_matrix.T,feature_matrix))
+    B = np.dot(feature_matrix.T,targets)
+    res = np.dot(A,B)
+    # print(res,res.shape)
+    return res
 
 def get_predictions(feature_matrix, weights):
     '''
@@ -95,8 +105,11 @@ def get_predictions(feature_matrix, weights):
     feature_matrix: numpy array of shape m x n
     weights: numpy array of shape n x 1
     '''
-
-    raise NotImplementedError
+    one = np.ones((feature_matrix.shape[0],1))
+    feature_matrix = np.hstack((one,feature_matrix))
+    answer = np.dot(feature_matrix,weights)
+    # print(feature_matrix.shape,weights.shape,answer)
+    return answer
 
 def mse_loss(feature_matrix, weights, targets):
     '''
@@ -111,7 +124,13 @@ def mse_loss(feature_matrix, weights, targets):
     weights: numpy array of shape n x 1
     targets: numpy array of shape m x 1
     '''
-    raise NotImplementedError
+    # print(feature_matrix.shape,weights.shape)
+    one = np.ones((feature_matrix.shape[0],1))
+    feature_matrix = np.hstack((one,feature_matrix))
+    answer = np.dot(feature_matrix,weights)
+    finalAnswer = np.sum(answer - targets)**2
+    print(finalAnswer,"========================================")
+    return finalAnswer
 
 def l2_regularizer(weights):
     '''
