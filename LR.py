@@ -61,7 +61,6 @@ def get_features(csv_path,is_train=False,scaler=None):
 	X = X.drop("daynight",axis=1)
 	X["day"]=temp.iloc[:,0]
 	X["night"]=temp.iloc[:,1]
-	print(X)
 	scaler(X)
 	# temp = pd.get_dummies(X["satellite"])
 	# X["aqua"]=temp.iloc[:,0]
@@ -118,10 +117,14 @@ def analytical_solution(feature_matrix, targets, C=0.0):
 	feature_matrix = (feature_matrix-u)/std
 	one = np.ones((feature_matrix.shape[0],1))
 	feature_matrix = np.hstack((one,feature_matrix))
-	print(feature_matrix.shape )
+	# print(feature_matrix)
+
+	# one = np.ones((feature_matrix.shape[0],1))
+	# feature_matrix = np.hstack((one,feature_matrix))
 	A = np.linalg.inv(np.dot(feature_matrix.T,feature_matrix))
 	B = np.dot(feature_matrix.T,targets)
 	res = np.dot(A,B)
+	# print(res.shape)
 	# print(res,res.shape)
 	return res
 
@@ -137,8 +140,13 @@ def get_predictions(feature_matrix, weights):
 	feature_matrix: numpy array of shape m x n
 	weights: numpy array of shape n x 1
 	'''
+	# print("I am from get pred:",feature_matrix.shape,weights.shape)
+	# one = np.ones((feature_matrix.shape[0],1))
+	# feature_matrix = np.hstack((one,feature_matrix))
 	one = np.ones((feature_matrix.shape[0],1))
 	feature_matrix = np.hstack((one,feature_matrix))
+	# print("I am from get pred:",feature_matrix.shape,weights.shape)
+	# print(feature_matrix)
 	answer = np.dot(feature_matrix,weights)
 	# print(feature_matrix.shape,weights.shape,answer)
 	return answer
@@ -156,7 +164,6 @@ def mse_loss(feature_matrix, weights, targets):
 	weights: numpy array of shape n x 1
 	targets: numpy array of shape m x 1
 	'''
-	# print(feature_matrix.shape,weights.shape)
 	one = np.ones((feature_matrix.shape[0],1))
 	feature_matrix = np.hstack((one,feature_matrix))
 	answer = np.dot(feature_matrix,weights)
@@ -224,9 +231,19 @@ def sample_random_batch(feature_matrix, targets, batch_size):
 	feature_matrix: numpy array of shape m x n
 	targets: numpy array of shape m x 1
 	batch_size: int
-	'''    
-	raise NotImplementedError
-	
+	'''   
+	featureData=[]
+	targetData=[]
+	mydata=[]
+	for x in range(feature_matrix.shape(0)): 
+		mydata.append(tuple(targets[x],feature_matrix[x]))
+	picks =	np.random.randint(feature_matrix.shape[0],size = batch_size)
+	for x in picks:
+		featureData.append(mydata[x][0])
+		targetData.append(mydata[x][1])
+	print(picks,targetData)
+	return featureData,targetData
+
 def initialize_weights(n):
 	'''
 	Description:
@@ -238,7 +255,7 @@ def initialize_weights(n):
 	Arguments
 	n: int
 	'''
-	raise NotImplementedError
+	return np.random.rand(n,1)
 
 def update_weights(weights, gradients, lr):
 	'''
@@ -292,6 +309,7 @@ def do_gradient_descent(train_feature_matrix,
 
 	a sample code is as follows -- 
 	'''
+	n=train_feature_matrix.shape[1]+1
 	weights = initialize_weights(n)
 	dev_loss = mse_loss(dev_feature_matrix, weights, dev_targets)
 	train_loss = mse_loss(train_feature_matrix, weights, train_targets)
@@ -321,7 +339,10 @@ def do_gradient_descent(train_feature_matrix,
 
 def do_evaluation(feature_matrix, targets, weights):
 	# your predictions will be evaluated based on mean squared error 
+	np.set_printoptions(suppress=True)
 	predictions = get_predictions(feature_matrix, weights)
+	# np.savetxt('./res.csv',predictions,delimiter=',', fmt="%d")
+
 	loss =  mse_loss(feature_matrix, weights, targets)
 	return loss
 
@@ -333,11 +354,11 @@ if __name__ == '__main__':
 
 	a_solution = analytical_solution(train_features, train_targets, C=1e-8)
 	print('evaluating analytical_solution...')
-	dev_loss=do_evaluation(dev_features, dev_targets, a_solution)
 	train_loss=do_evaluation(train_features, train_targets, a_solution)
-	test_loss=do_evaluation(test_features, test_targets, a_solution)
+	dev_loss=do_evaluation(dev_features, dev_targets, a_solution)
+	# test_loss=do_evaluation(test_features, test_targets, a_solution)
 
-	print('analytical_solution \t train loss: {}, dev_loss: {} , test_loss: {} '.format(train_loss, dev_loss,test_loss))
+	print('analytical_solution \t train loss: {}, dev_loss: {} '.format(train_loss, dev_loss))
 
 	print('training LR using gradient descent...')
 	gradient_descent_soln = do_gradient_descent(train_features, 
