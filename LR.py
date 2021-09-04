@@ -49,14 +49,6 @@ def get_features(csv_path,is_train=False,scaler=None):
 		X = X.drop("frp",axis=1)
 	except:
 		pass
-	X = X.drop("version",axis=1)
-	X = X.drop("instrument",axis=1)
-	X = X.drop("acq_date",axis=1)
-	X = X.drop("satellite",axis=1)
-	X = X.drop("latitude",axis=1)
-	X = X.drop("longitude",axis=1)
-	X = X.drop("brightness",axis=1)
-	X = X.drop("confidence",axis=1)
 	temp = pd.get_dummies(X["daynight"])
 	X = X.drop("daynight",axis=1)
 	X["day"]=temp.iloc[:,0]
