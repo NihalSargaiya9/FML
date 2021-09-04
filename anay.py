@@ -8,16 +8,10 @@ np.random.seed(42)
 
 class Scaler():
 	# hint: https://machinelearningmastery.com/standardscaler-and-minmaxscaler-transforms-in-python/
-	# def __init__(self):
-	# 	raise NotImplementedError
+	def __init__(self):
+		raise NotImplementedError
 	def __call__(self,features, is_train=False):
-		
-		for _ in range(features.shape[1]):
-			u = np.mean(features.iloc[:,_])
-			std = np.std(features.iloc[:,_])
-			features.iloc[:,_]=(features.iloc[:,_]-u)/std
-
-		return features
+		raise NotImplementedError
 
 
 def get_features(csv_path,is_train=False,scaler=None):
@@ -43,47 +37,42 @@ def get_features(csv_path,is_train=False,scaler=None):
 		* https://pandas.pydata.org/pandas-docs/stable/reference/api/pandas.read_csv.html
 		* https://www.geeksforgeeks.org/python-read-csv-using-pandas-read_csv/
 	'''
-	data = pd.read_csv(csv_path,index_col=0)
-	X = data
-	try:
-		X = X.drop("frp",axis=1)
-	except:
-		pass
+	X = pd.read_csv(csv_path,index_col=0)
+	X = X.drop("frp",axis=1)
 	X = X.drop("version",axis=1)
 	X = X.drop("instrument",axis=1)
 	X = X.drop("acq_date",axis=1)
-	X = X.drop("satellite",axis=1)
-	X = X.drop("latitude",axis=1)
-	X = X.drop("longitude",axis=1)
-	X = X.drop("brightness",axis=1)
-	X = X.drop("confidence",axis=1)
 	temp = pd.get_dummies(X["daynight"])
 	X = X.drop("daynight",axis=1)
-	X["day"]=temp.iloc[:,0]
-	X["night"]=temp.iloc[:,1]
-	scaler(X)
-	# temp = pd.get_dummies(X["satellite"])
-	# X["aqua"]=temp.iloc[:,0]
-	# X["terra"]=temp.iloc[:,1]
-	X= X.values
-	# X = X.iloc[:,:2]
-	# header = []
-	# for x in X:
-	# 	header.append(x)
-	# header.pop(0)
-	# covar =[]
-	# for _ in range(13):
-	# 	u1 = np.mean(X[:,_],axis=0)
-	# 	u2 = np.mean(data.iloc[:,-2],axis=0)
-	# 	z1 = (X[:,_]-u1)
-	# 	z2 = (data.iloc[:,-2]-u2)
-	# 	temp = (np.sum((X[:,_]-u1)*(data.iloc[:,-2]-u2)))/np.power(np.sum(np.power(z1,2))*np.sum(np.power(z2,2)),0.5)
-	# 	covar.append(temp,header[_])
-	# 	print(temp,"-----------",header[_])
-	# temp2=np.cov('frp','latitude')
-	# print("cov===\n\n\n\n\n\n",temp2)
-	# X = np.power(X,1)
+	X["day"] = temp.iloc[:,0]
+	X["night"] = temp.iloc[:,1]
+	temp1 = pd.get_dummies(X["satellite"])
+	X = X.drop("satellite",axis=1)
+	X["aqua"] = temp1.iloc[:,0]
+	X["terra"] = temp1.iloc[:,1]
+	#cprint(X.shape)
+	columns = (X.columns[0])
+	max = [X[c].max() for c in X.columns]
+	min = [X[c].min() for c in X.columns]
+	i=0
+	for c in X.columns:
+		while(i<len(X.columns)):
+			X[c] = (X[c]-min[i])/(max[i]-min[i])
+			i = i+1
+			break
+	one = np.ones((X.shape[0],1))
+	X = np.hstack((one,X))
+	#print(X)
+	print(X.shape)
+	
 	return X
+	
+	
+	
+
+	
+
+   # raise NotImplementedError
 
 def get_targets(csv_path):
 	'''
@@ -92,10 +81,13 @@ def get_targets(csv_path):
 	return a numpy array of shape m x 1
 	m is number of examples
 	'''
-	data = pd.read_csv(csv_path)
-	Y = data.iloc[:,-2]
-	return Y
-
+	
+	targets = pd.read_csv(csv_path)
+	targets = targets.iloc[:,-2]
+	targets = (targets -targets.min())/(targets.max()-targets.min())
+	#print(targets)
+	return targets
+	#raise NotImplementedError
 	 
 
 def analytical_solution(feature_matrix, targets, C=0.0):
@@ -111,22 +103,14 @@ def analytical_solution(feature_matrix, targets, C=0.0):
 	feature_matrix: numpy array of shape m x n
 	targets: numpy array of shape m x 1
 	'''
-	#anay
-	u = np.mean(feature_matrix,axis=0)
-	std = np.std(feature_matrix,axis=0)
-	feature_matrix = (feature_matrix-u)/std
-	one = np.ones((feature_matrix.shape[0],1))
-	feature_matrix = np.hstack((one,feature_matrix))
-	# print(feature_matrix)
-
-	# one = np.ones((feature_matrix.shape[0],1))
-	# feature_matrix = np.hstack((one,feature_matrix))
+	
 	A = np.linalg.inv(np.dot(feature_matrix.T,feature_matrix))
 	B = np.dot(feature_matrix.T,targets)
-	res = np.dot(A,B)
-	# print(res.shape)
-	# print(res,res.shape)
-	return res
+	W = np.dot(A,B)
+	#print(W)
+	#print(W.shape)
+	return W
+   # raise NotImplementedError 
 
 def get_predictions(feature_matrix, weights):
 	'''
@@ -140,16 +124,14 @@ def get_predictions(feature_matrix, weights):
 	feature_matrix: numpy array of shape m x n
 	weights: numpy array of shape n x 1
 	'''
-	# print("I am from get pred:",feature_matrix.shape,weights.shape)
-	# one = np.ones((feature_matrix.shape[0],1))
-	# feature_matrix = np.hstack((one,feature_matrix))
-	one = np.ones((feature_matrix.shape[0],1))
-	feature_matrix = np.hstack((one,feature_matrix))
-	# print("I am from get pred:",feature_matrix.shape,weights.shape)
+	
+	print(feature_matrix.shape,weights.shape)
 	# print(feature_matrix)
-	answer = np.dot(feature_matrix,weights)
-	# print(feature_matrix.shape,weights.shape,answer)
-	return answer
+	Ypred = np.dot(feature_matrix,weights)
+	
+	#print(Ypred)
+	return Ypred
+   # raise NotImplementedError
 
 def mse_loss(feature_matrix, weights, targets):
 	'''
@@ -164,12 +146,14 @@ def mse_loss(feature_matrix, weights, targets):
 	weights: numpy array of shape n x 1
 	targets: numpy array of shape m x 1
 	'''
-	one = np.ones((feature_matrix.shape[0],1))
-	feature_matrix = np.hstack((one,feature_matrix))
-	answer = np.dot(feature_matrix,weights)
-	finalAnswer = (np.sum(answer - targets)**2)/feature_matrix.shape[0]
-	# print(finalAnswer,"========================================")
-	return finalAnswer
+	
+	Ypred  = np.dot(feature_matrix,weights)
+	
+	
+	loss = (np.sum(Ypred - targets)**2)/(feature_matrix.shape[0])
+	
+	return loss
+	#raise NotImplementedError
 
 def l2_regularizer(weights):
 	'''
@@ -182,7 +166,10 @@ def l2_regularizer(weights):
 	Arguments
 	weights: numpy array of shape n x 1
 	'''
-	raise NotImplementedError
+	reg = np.sum(weights**2)
+	return reg
+	#print(reg)
+	#raise NotImplementedError
 
 def loss_fn(feature_matrix, weights, targets, C=0.0):
 	'''
@@ -198,8 +185,13 @@ def loss_fn(feature_matrix, weights, targets, C=0.0):
 	C: weight for regularization penalty
 	return value: float (scalar)
 	'''
-
-	raise NotImplementedError
+	mse = mse_loss(feature_matrix,weights,targets) 
+	l2 = l2_regularizer(weights)
+	loss = mse + C*l2
+	print("------loss func",loss)
+	return loss
+	
+	#raise NotImplementedError
 
 def compute_gradients(feature_matrix, weights, targets, C=0.0):
 	'''
@@ -215,8 +207,9 @@ def compute_gradients(feature_matrix, weights, targets, C=0.0):
 	C: weight for regularization penalty
 	return value: numpy array
 	'''
+	# gradients = np.dot(feature_matrix,loss_fn(feature_matrix,weights,targets,C))/(2*feature_matrix.shape[0])
 	predictions = np.dot(feature_matrix,weights)
-	gradients = (np.dot(feature_matrix,(predictions-targets)))+(C*l2_regularizer(weights))/(2*feature_matrix.shape[0])
+	gradients = (np.dot(feature_matrix.T,(predictions-targets)))+(C*l2_regularizer(weights))/(2*feature_matrix.shape[0])
 	return gradients
 
 def sample_random_batch(feature_matrix, targets, batch_size):
@@ -233,7 +226,7 @@ def sample_random_batch(feature_matrix, targets, batch_size):
 	feature_matrix: numpy array of shape m x n
 	targets: numpy array of shape m x 1
 	batch_size: int
-	'''   
+	'''    
 	featureData=[]
 	targetData=[]
 	mydata=[]
@@ -245,7 +238,7 @@ def sample_random_batch(feature_matrix, targets, batch_size):
 		targetData.append(mydata[x][1])
 	print(picks,targetData)
 	return featureData,targetData
-
+	
 def initialize_weights(n):
 	'''
 	Description:
@@ -272,8 +265,10 @@ def update_weights(weights, gradients, lr):
 	# gradients: numpy matrix of shape nx1
 	# lr: learning rate
 	'''    
-
-	raise NotImplementedError
+	weights = weights - lr*gradients 
+	return weights
+ 
+	#raise NotImplementedError
 
 def early_stopping(arg_1=None, arg_2=None, arg_3=None, arg_n=None):
 	# allowed to modify argument list as per your need
@@ -311,8 +306,8 @@ def do_gradient_descent(train_feature_matrix,
 
 	a sample code is as follows -- 
 	'''
-	n=train_feature_matrix.shape[1]+1
-	weights = initialize_weights(n)
+	n=train_feature_matrix.shape[1]
+	weights = initialize_weights(13)
 	dev_loss = mse_loss(dev_feature_matrix, weights, dev_targets)
 	train_loss = mse_loss(train_feature_matrix, weights, train_targets)
 
@@ -341,25 +336,20 @@ def do_gradient_descent(train_feature_matrix,
 
 def do_evaluation(feature_matrix, targets, weights):
 	# your predictions will be evaluated based on mean squared error 
-	np.set_printoptions(suppress=True)
 	predictions = get_predictions(feature_matrix, weights)
-	# np.savetxt('./res.csv',predictions,delimiter=',', fmt="%d")
-
 	loss =  mse_loss(feature_matrix, weights, targets)
 	return loss
 
 if __name__ == '__main__':
-	scaler = Scaler() #use of scaler is optional
-	train_features, train_targets = get_features('data/train.csv',True,scaler), get_targets('data/train.csv')
-	dev_features, dev_targets = get_features('data/dev.csv',False,scaler), get_targets('data/dev.csv')
-	test_features, test_targets = get_features('data/test.csv',False,scaler), get_targets('data/test.csv')
+	#scaler = Scaler() #use of scaler is optional
+	scaler = False
+	train_features, train_targets = get_features('./data/train.csv',True,scaler), get_targets('./data/train.csv')
+	dev_features, dev_targets = get_features('./data/dev.csv',False,scaler), get_targets('./data/dev.csv')
 
 	a_solution = analytical_solution(train_features, train_targets, C=1e-8)
 	print('evaluating analytical_solution...')
-	train_loss=do_evaluation(train_features, train_targets, a_solution)
 	dev_loss=do_evaluation(dev_features, dev_targets, a_solution)
-	# test_loss=do_evaluation(test_features, test_targets, a_solution)
-
+	train_loss=do_evaluation(train_features, train_targets, a_solution)
 	print('analytical_solution \t train loss: {}, dev_loss: {} '.format(train_loss, dev_loss))
 
 	print('training LR using gradient descent...')
@@ -377,5 +367,4 @@ if __name__ == '__main__':
 	dev_loss=do_evaluation(dev_features, dev_targets, gradient_descent_soln)
 	train_loss=do_evaluation(train_features, train_targets, gradient_descent_soln)
 	print('gradient_descent_soln \t train loss: {}, dev_loss: {} '.format(train_loss, dev_loss))
-	#plot_trainsize_losses()   
-
+	#plot_trainsize_losses()  
