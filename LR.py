@@ -3,11 +3,11 @@ import pandas as pd
 import numpy as np
 import matplotlib
 from pandas.io import feather_format
-matplotlib.use("Agg")
+# matplotlib.use("Agg")
 from matplotlib import pyplot as plt
-
 np.random.seed(42)
 scalingData={}
+devLoss = {}
 class Scaler():
 	# hint: https://machinelearningmastery.com/standardscaler-and-minmaxscaler-transforms-in-python/
 	# def __init__(self):
@@ -64,19 +64,6 @@ def get_features(csv_path,is_train=False,scaler=None):
 	feaures = ["scan","track","acq_time","bright_t31","daynight","latitude","longitude","brightness","confidence","satellite"]
 	data = pd.read_csv(csv_path)[feaures]
 	X = data
-	# try:
-	# 	X = X.drop("frp",axis=1)
-	# except:
-	# 	pass
-	# # X = X.drop("version",axis=1)
-	# # X = X.drop("instrument",axis=1)
-	# # X = X.drop("acq_date",axis=1)
-	# # X = X.drop("satellite",axis=1)
-	# # X = X.drop("latitude",axis=1)
-	# # X = X.drop("longitude",axis=1)
-	# # X = X.drop("brightness",axis=1)
-	# # X = X.drop("confidence",axis=1)
-	
 	temp = pd.get_dummies(X["daynight"])
 	X = X.drop("daynight",axis=1)
 	X["day"]=temp.iloc[:,0]
@@ -87,13 +74,17 @@ def get_features(csv_path,is_train=False,scaler=None):
 	X["terra"]=temp.iloc[:,1]
 	# scaler(X) 
 	# for _ in range(X.shape[1]):
-	# 	u = np.mean(X.iloc[:,_])
-	# 	std = np.std(X.iloc[:,_])
-	# 	X.iloc[:,_]=(X.iloc[:,_]-u)/std
 
+	# 	# scalingData[feaures[_]]["u"]=u
+	# 	# scalingData[feaures[_]]["std"]=std
+	# 	X.iloc[:,_]=(X.iloc[:,_]-u)/std
+	u = np.mean(X,0)
+	std = np.std(X,0)
+	X = (X-u)/std
+	print(X)
 	one = np.ones((X.shape[0],1))
 	X = np.hstack((one,X))
-	X = polyBasis(X)
+	# X = squareBasis(X)
 	return X
 
 def get_targets(csv_path):
@@ -103,17 +94,14 @@ def get_targets(csv_path):
 	return a numpy array of shape m x 1
 	m is number of examples
 	'''
-	data = pd.read_csv(csv_path)
-	Y = data.iloc[:,-2]
-	targets = Y
-
+	targets   = pd.read_csv(csv_path)["frp"]
 	# targets = (targets -targets.min())/(targets.max()-targets.min())
-	# u = np.mean(Y)
-	# std = np.std(Y)
-	# scalingData["min"]= min(targets)
-	# scalingData["max"]= max(targets)
-	# Y=(Y-u)/std
-	return Y
+	# u = np.mean(targets)
+	# std = np.std(targets)
+	# scalingData["u"]= min(targets)
+	# scalingData["std"]= max(targets)
+	# targets=(targets-u)/std
+	return targets
 
 	 
 
@@ -130,7 +118,6 @@ def analytical_solution(feature_matrix, targets, C=0.0):
 	feature_matrix: numpy array of shape m x n
 	targets: numpy array of shape m x 1
 	'''
-	C=0.0001
 	A = np.linalg.inv(np.dot(feature_matrix.T,feature_matrix)+C*l2_regularizer(targets))
 	B = np.dot(feature_matrix.T,targets)
 
@@ -151,8 +138,14 @@ def get_predictions(feature_matrix, weights):
 	weights: numpy array of shape n x 1
 	'''
 	Ypred = np.dot(feature_matrix,weights)
-	# Ypred = (Ypred*(scalingData["max"]-scalingData["min"]))+scalingData["min"]
-	
+	# Ypred = (Ypred*(scalingData["std"]))+scalingData["u"]
+	# for _ in range(Y.shape[0]):
+	# 	# u = np.mean(Y.iloc[:,_])
+	# 	# std = np.std(X.iloc[:,_])
+	# 	# scalingData[feaures[_]]["u"]=u
+	# 	# scalingData[feaures[_]]["std"]=std
+	# 	# X.iloc[:,_]=(X/.iloc[:,_]-u)/std
+	# 	Ypred[_]= Ypred[_]*scalingData[]
 	return abs(Ypred)
 
 def mse_loss(feature_matrix, weights, targets):
@@ -318,8 +311,14 @@ def plot_trainsize_losses():
 	# you are allowed to change the argument list any way you like 
 	'''    
 
-	raise NotImplementedError
+	# Dataset
+	x = np.array([ 1, 2, 3, 4, 5])
+	y = np.array([ 50,40,30,20,10 ])
 
+	# Plotting the Graph
+	plt.plot(x, y)
+	plt.show()
+	return 
 
 def do_gradient_descent(train_feature_matrix,  
 						train_targets, 
@@ -330,50 +329,28 @@ def do_gradient_descent(train_feature_matrix,
 						batch_size=32,
 						max_steps=10000,
 						eval_steps=5):
-	'''
-	feel free to significantly modify the body of this function as per your needs.
-	** However **, you ought to make use of compute_gradients and update_weights function defined above
-	return your best possible estimate of LR weights
-
-	a sample code is as follows -- 
-	'''
-
 	n=train_feature_matrix.shape[1]
 	weights = initialize_weights(n)
-	# print("start")
 	dev_loss = mse_loss(dev_feature_matrix, weights, dev_targets)
-	# print("start")
-	train_loss = mse_loss(train_feature_matrix, weights, train_targets)
-	# print("start")
-
+	train_loss = mse_loss(train_feature_matrix, weights, train_targets)	
 	print("step {} \t dev loss: {} \t train loss: {}".format(0,dev_loss,train_loss))
 	for step in range(1,max_steps+1):
-		# print(step,"ok..")
-		#sample a batch of features and gradients
-		# print(train_features.shape,"================")
-
 		features,targets = sample_random_batch(train_feature_matrix,train_targets,batch_size)
 		features = np.array(features)
 		targets = np.array(targets)
+
+
 		#compute gradients
 		gradients = compute_gradients(features, weights, targets, C)
 		
-		# print(gradients.shape,"GOD's Help")
 		#update weights
 		weights = update_weights(weights, gradients, lr)
-
 		if step%eval_steps == 0:
-			# print(weights.shape,"******")
-			dev_loss = mse_loss(dev_feature_matrix, weights, dev_targets)
-			train_loss = mse_loss(train_feature_matrix, weights, train_targets)
-			print("step {} \t dev loss: {} \t train loss: {}".format(step,dev_loss,train_loss))
-
-		'''
-		implement early stopping etc. to improve performance.
-		'''
-
+				dev_loss = mse_loss(dev_feature_matrix, weights, dev_targets)
+				train_loss = mse_loss(train_feature_matrix, weights, train_targets)
+				devLoss[step]= dev_loss
+				print("step {} \t dev loss: {} \t train loss: {}".format(step,dev_loss,train_loss))
 	return weights
-
 def do_evaluation(feature_matrix, targets, weights):
 	# your predictions will be evaluated based on mean squared error 
 	# predictions = get_predictions(feature_matrix, weights)
@@ -412,27 +389,27 @@ if __name__ == '__main__':
 	df = pd.DataFrame({"frp":predictions})
 	df.rename(columns={"":"id"})
 	df.to_csv("answer.csv")
-
-	exit(0)
+	# gradient_descent_soln = 0
+	# exit(0)
 	gradient_descent_soln = do_gradient_descent(train_features, 
 						train_targets, 
 						dev_features,
 						dev_targets,
-						lr=0.00005,
+						lr=0.0005,
 						C=0.0,
 						batch_size=32,
-						max_steps=20000,
-						eval_steps=5)
+						max_steps=1000,
+						eval_steps=50)
 
-	print('evaluating iterative_solution...')
-	dev_loss=do_evaluation(dev_features, devYTargets, finalSol)
-	train_loss=do_evaluation(train_features, trainYTargets, finalSol)
+	# print('evaluating iterative_solution...')
+	# dev_loss=do_evaluation(dev_features, devYTargets, finalSol)
+	# train_loss=do_evaluation(train_features, trainYTargets, finalSol)
 
-	predictions = get_predictions(test_features, finalSol)
-	id = np.arange(test_features.shape[0])
-	df = pd.DataFrame({"frp":predictions})
-	df.rename(columns={"":"id"})
-	df.to_csv("answer.csv")
+	# predictions = get_predictions(test_features, finalSol)
+	# id = np.arange(test_features.shape[0])
+	# df = pd.DataFrame({"frp":predictions})
+	# df.rename(columns={"":"id"})
+	# df.to_csv("answer.csv")
 
 	print('gradient_descent_soln \t train loss: {}, dev_loss: {} '.format(train_loss, dev_loss))
-	#plot_trainsize_losses()  
+	plot_trainsize_losses()  
